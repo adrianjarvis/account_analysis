@@ -7,6 +7,7 @@ DICT_FILE_NAME = 'classifications.json'
 
 classifications_to_print = ['Unknown']
 
+
 class MonthAccount(object):
     def __init__(self):
         self._incoming = collections.defaultdict(float)
@@ -18,11 +19,11 @@ class MonthAccount(object):
         else:
             self._incoming[classification] += entry.amount
 
-    def print_summary(self):
-        for name, amount in self._outgoing.items():
-            print('{:<30} {:>8.2f}'.format(name, amount))
-        for name, amount in self._incoming.items():
-            print('{:<40} {:>8.2f}'.format(name, amount))
+    def print_summary(self, classifications):
+        for name in classifications:
+            print(name, end='')
+            print('{:>8.2f}'.format(self._outgoing.get(name, 0)), end='')
+            print('{:>8.2f}'.format(self._incoming.get(name, 0)))
 
     def balance(self):
         total = 0.
@@ -31,7 +32,6 @@ class MonthAccount(object):
         for amount in self._incoming.values():
             total += amount
         return total
-
 
 class Classifier(object):
     def __init__(self):
@@ -99,6 +99,7 @@ def main():
     totals = collections.defaultdict(MonthAccount)
     classifier = Classifier()
     classifier.load(DICT_FILE_NAME)
+    classifications = set()
     for file_name, parse_func in files.items():
         for entry in parse_file(file_name, parse_func):
             classification = classifier.classify(entry)
@@ -106,12 +107,15 @@ def main():
                 classification = input("Enter classification for {}:".format(entry))
                 classifier.add_classification(entry, classification)
             totals[entry.year_month()].process(entry, classification)
-            if classification in  classifications_to_print:
+            classifications.add(classification)
+            if classification in classifications_to_print:
                 print(file_name, entry)
     classifier.save(DICT_FILE_NAME)
+    ordered_classes = list(classifications)
+    ordered_classes.sort()
     for year_month, summary in totals.items():
         print(year_month)
-        summary.print_summary()
+        summary.print_summary(ordered_classes)
         print('====',summary.balance(),'====')
 
 
